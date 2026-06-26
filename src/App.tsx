@@ -26,14 +26,14 @@ function persistNextDoiSuffix(value: number) {
 
 function defaultRecord(): RecordBase {
   return {
-    title: 'Title',
+    title: 'Optimising animal health AMR surveillance',
     abstract:
-      'Abstract.',
-    year: 'xxxx',
-    month: 'xx',
-    day: 'xx',
+      'AMR is an escalating One Health threat with major implications for human health and animal production.',
+    year: '2026',
+    month: '05',
+    day: '01',
     resourceUrl:
-      'https://xxxx.xxx',
+      'https://media.tghn.org/medialibrary/2026/05/FF_OptimisingAMR_Surveillance_Animal_Health_130225_FINAL.pdf',
     language: 'en',
     publicationType: 'full_text',
     referenceDoi: '',
@@ -117,8 +117,7 @@ function buildXml(mode: Mode, record: RecordBase, creators: Creator[], meta: Exp
         language: record.language || 'es',
         publicationType: record.publicationType,
         translators: creators,
-        parentDoi: record.referenceDoi,
-        originalResourceDoi: record.relatedDoi,
+        originalDoi: record.referenceDoi,
       });
     case 'appendix':
       return buildAppendixXml({
@@ -342,7 +341,7 @@ export default function App() {
       <div className="header">
         <div>
           <h1>DOI Automator</h1>
-          <small>Client-side XML generator for Crossref deposits.</small>
+          <small>Client-side XML generator for Fleming Fund-style Crossref deposits.</small>
         </div>
         <div className="muted">Netlify-ready Vite app</div>
       </div>
@@ -483,23 +482,13 @@ export default function App() {
                 ) : (
                   <>
                     <div>
-                      <label>{mode === 'translation' ? 'Parent DOI' : 'Hub DOI'}</label>
+                      <label>{mode === 'translation' ? 'Original DOI' : 'Hub DOI'}</label>
                       <input
                         value={record.referenceDoi}
                         onChange={(e) => setRecord({ ...record, referenceDoi: e.target.value })}
                         placeholder="10.48060/tghn.187"
                       />
                     </div>
-                    {mode === 'translation' && (
-                      <div style={{ marginTop: 12 }}>
-                        <label>Original language DOI</label>
-                        <input
-                          value={record.relatedDoi}
-                          onChange={(e) => setRecord({ ...record, relatedDoi: e.target.value })}
-                          placeholder="10.48060/tghn.190"
-                        />
-                      </div>
-                    )}
                     {mode === 'appendix' && (
                       <div style={{ marginTop: 12 }}>
                         <label>Related resource DOI</label>
@@ -614,14 +603,14 @@ export default function App() {
         <div className="card">
           <div className="actions">
             <button className="primary" onClick={() => exportXml('copy')}>
-              Copy XML
+              Copy XML and reserve DOI
             </button>
             <button className="secondary" onClick={() => exportXml('download')}>
-              Download XML
+              Download XML and reserve DOI
             </button>
           </div>
           <div className="muted" style={{ marginBottom: 12 }}>
-            DOI allocation increments by 1 for every export, including hubs.
+            DOI allocation starts at 10.48060/tghn.196 and increments by 1 for every export, including hubs.
           </div>
           <textarea className="code" readOnly value={xml} />
         </div>

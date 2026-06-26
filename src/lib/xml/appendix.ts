@@ -24,7 +24,7 @@ export function buildAppendixXml(input: {
 }): string {
   const body = [
     '  <body>',
-    `    <report-paper publication_type="${escapeXml(input.publicationType)}" language="${escapeXml(input.language)}">`,
+    `    <report-paper publication_type="full_text">`,
     `      <report-paper_metadata language="${escapeXml(input.language)}">`,
     buildContributors(input.creators),
     '        <titles>',
@@ -34,8 +34,6 @@ export function buildAppendixXml(input: {
     `          <jats:p>${escapeXml(input.abstract)}</jats:p>`,
     '        </jats:abstract>',
     '        <publication_date media_type="online">',
-    `          <month>${escapeXml(input.month)}</month>`,
-    `          <day>${escapeXml(input.day)}</day>`,
     `          <year>${escapeXml(input.year)}</year>`,
     '        </publication_date>',
     buildRelationBlock([

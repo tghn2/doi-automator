@@ -23,7 +23,7 @@ export function buildResourceXml(input: {
 }): string {
   const body = [
     '  <body>',
-    `    <report-paper publication_type="${escapeXml(input.publicationType)}" language="${escapeXml(input.language)}">`,
+    `    <report-paper publication_type="full_text">`,
     `      <report-paper_metadata language="${escapeXml(input.language)}">`,
     buildContributors(input.creators),
     '        <titles>',
@@ -33,8 +33,6 @@ export function buildResourceXml(input: {
     `          <jats:p>${escapeXml(input.abstract)}</jats:p>`,
     '        </jats:abstract>',
     '        <publication_date media_type="online">',
-    `          <month>${escapeXml(input.month)}</month>`,
-    `          <day>${escapeXml(input.day)}</day>`,
     `          <year>${escapeXml(input.year)}</year>`,
     '        </publication_date>',
     '        <publisher><publisher_name>The Global Health Network</publisher_name></publisher>',
