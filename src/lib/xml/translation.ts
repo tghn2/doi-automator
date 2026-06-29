@@ -21,6 +21,7 @@ export function buildTranslationXml(input: {
   language: string;
   publicationType: 'full_text' | 'abstract_only' | 'bibliographic_record';
   translators: Creator[];
+  hubDoi: string;
   originalDoi: string;
 }): string {
   const body = [
@@ -30,7 +31,6 @@ export function buildTranslationXml(input: {
     buildContributors(input.translators),
     '        <titles>',
     `          <title>${escapeXml(input.title)}</title>`,
-    `          <original_language_title xml:lang="${escapeXml(input.originalLanguage)}">${escapeXml(input.originalTitle)}</original_language_title>`,
     '        </titles>',
     `        <jats:abstract xml:lang="${escapeXml(input.language)}">`,
     `          <jats:p>${escapeXml(input.abstract)}</jats:p>`,
@@ -38,7 +38,10 @@ export function buildTranslationXml(input: {
     '        <publication_date media_type="online">',
     `          <year>${escapeXml(input.year)}</year>`,
     '        </publication_date>',
-    buildRelationBlock([{ type: 'isTranslationOf', doi: input.originalDoi }]),
+    buildRelationBlock([
+      { type: 'isPartOf', doi: input.hubDoi },
+      { type: 'isTranslationOf', doi: input.originalDoi },
+    ]),
     '        <doi_data>',
     `          <doi>${escapeXml(input.doi)}</doi>`,
     `          <resource>${escapeXml(input.resourceUrl)}</resource>`,

@@ -2,7 +2,7 @@ export type Mode = 'hub' | 'resource' | 'translation' | 'appendix';
 
 export type Creator = {
   sequence: 'first' | 'additional';
-  contributorRole: 'author' | 'translator';
+  contributorRole: string;
   givenName: string;
   surname: string;
   affiliation?: string;

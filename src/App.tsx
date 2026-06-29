@@ -26,14 +26,14 @@ function persistNextDoiSuffix(value: number) {
 
 function defaultRecord(): RecordBase {
   return {
-    title: 'Optimising animal health AMR surveillance',
+    title: 'Title',
     abstract:
-      'AMR is an escalating One Health threat with major implications for human health and animal production.',
+      'Abstract',
     year: '2026',
-    month: '05',
+    month: '01',
     day: '01',
     resourceUrl:
-      'https://media.tghn.org/medialibrary/2026/05/FF_OptimisingAMR_Surveillance_Animal_Health_130225_FINAL.pdf',
+      'https://####.###',
     language: 'en',
     publicationType: 'full_text',
     referenceDoi: '',
@@ -117,7 +117,8 @@ function buildXml(mode: Mode, record: RecordBase, creators: Creator[], meta: Exp
         language: record.language || 'es',
         publicationType: record.publicationType,
         translators: creators,
-        originalDoi: record.referenceDoi,
+        hubDoi: record.referenceDoi || '10.48060/tghn.187',
+        originalDoi: record.relatedDoi || record.referenceDoi,
       });
     case 'appendix':
       return buildAppendixXml({
@@ -255,10 +256,7 @@ export default function App() {
   }
 
   function clearWorkbook() {
-    setWorkbook(null);
-    setActiveSheetName('');
-    setActiveRowIndex(0);
-    setWorkbookNotice('Workbook cleared.');
+    window.location.reload();
   }
 
   function selectSheet(sheet: WorkbookSheet) {
@@ -273,8 +271,8 @@ export default function App() {
   }
 
   const exportXml = async (action: 'copy' | 'download') => {
-    if (mode === 'translation' && !record.referenceDoi.trim()) {
-      alert('Please enter the original DOI before exporting this record.');
+    if (mode === 'translation' && (!record.referenceDoi.trim() || !record.relatedDoi.trim())) {
+      alert('Please enter both the hub DOI and translated resource DOI before exporting this record.');
       return;
     }
     if (mode === 'appendix' && (!record.referenceDoi.trim() || !record.relatedDoi.trim())) {
@@ -364,12 +362,9 @@ export default function App() {
             <input value={workbookNotice || 'No workbook loaded.'} readOnly />
           </div>
         </div>
-        <div className="actions">
-          <button className="secondary" onClick={loadSelectedRow} disabled={!workbook || !currentSheet}>
-            Load selected row
-          </button>
-          <button className="secondary" onClick={clearWorkbook} disabled={!workbook}>
-            Clear workbook
+        <div className="actions">          
+          <button className="secondary" onClick={clearWorkbook}>
+            Reset app
           </button>
         </div>
       </div>
@@ -420,9 +415,10 @@ export default function App() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label>Selected sheet</label>
-                <input value={currentSheet.name} readOnly />
+              <div className="actions">
+                <button className="secondary" onClick={loadSelectedRow} disabled={!workbook || !currentSheet}>
+                  Load selected row
+                </button>                
               </div>
             </div>
           )}
@@ -610,7 +606,7 @@ export default function App() {
             </button>
           </div>
           <div className="muted" style={{ marginBottom: 12 }}>
-            DOI allocation starts at 10.48060/tghn.196 and increments by 1 for every export, including hubs.
+            DOI allocation increments by 1 for every export, including hubs.
           </div>
           <textarea className="code" readOnly value={xml} />
         </div>

@@ -120,10 +120,28 @@ export function parseRecordFromRow(row: Record<string, string>, fallbackMode: Mo
   };
 }
 
-function guessContributionRole(row: Record<string, string>, index: number, mode: Mode): Creator['contributorRole'] {
-  const explicit = lookupValue(row, [`role_${index}`, `role contributor ${index}`, `contributor role ${index}`, `role (contributor ${index})`]);
-  if (explicit === 'translator' || explicit === 'author') return explicit;
-  return mode === 'translation' ? 'translator' : 'author';
+function normalizeContributorRole(value: string, mode: Mode): Creator['contributorRole'] {
+  const trimmed = value.trim();
+  if (!trimmed) return mode === 'translation' ? 'translator' : 'author';
+  return trimmed;
+}
+
+function resolveContributorRole(row: Record<string, string>, index: number, mode: Mode): Creator['contributorRole'] {
+  const explicit = lookupValue(row, [
+    `creator_${index}_role`,
+    `contributor_${index}_role`,
+    `role_${index}`,
+    `role contributor ${index}`,
+    `contributor role ${index}`,
+    `role (contributor ${index})`,
+    `creator role ${index}`,
+    `author ${index} role`,
+    `translator ${index} role`,
+    'contributor_role',
+    'creator_role',
+    'role',
+  ]);
+  return explicit ? normalizeContributorRole(explicit, mode) : (mode === 'translation' ? 'translator' : 'author');
 }
 
 function findCreatorField(row: Record<string, string>, index: number, fieldTokens: string[]): string {
@@ -154,7 +172,7 @@ function parseInlineCreators(row: Record<string, string>, mode: Mode): Creator[]
       findCreatorField(row, index, ['organisation', 'organization']) ||
       lookupValue(row, [`organisation_${index}`, `organization_${index}`, `organisation contributor ${index}`, `organization contributor ${index}`]);
     const orcid = findCreatorField(row, index, ['orcid']) || lookupValue(row, [`orcid_${index}`, `orcid contributor ${index}`]);
-    const contributorRole = guessContributionRole(row, index, mode);
+    const contributorRole = resolveContributorRole(row, index, mode);
     const sequence = index === 1 ? 'first' : 'additional';
 
     if (!givenName && !surname && !affiliation && !orcid) continue;
@@ -181,7 +199,7 @@ function parseCreatorsSheet(sheetRows: Record<string, string>[], recordId: strin
 
     creators.push({
       sequence: creators.length === 0 ? 'first' : 'additional',
-      contributorRole: (lookupValue(row, ['contributor_role', 'role']) as Creator['contributorRole']) || (mode === 'translation' ? 'translator' : 'author'),
+      contributorRole: resolveContributorRole(row, creators.length + 1, mode),
       givenName: lookupValue(row, ['given_name', 'given name']),
       surname: lookupValue(row, ['surname', 'family_name', 'last_name']),
       affiliation: lookupValue(row, ['organisation', 'organization', 'affiliation']),
