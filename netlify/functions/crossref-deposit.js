@@ -2,7 +2,7 @@ const DEFAULT_DEPOSIT_URL = 'https://doi.crossref.org/servlet/deposit';
 const TEST_DEPOSIT_URL = 'https://test.crossref.org/servlet/deposit';
 
 function getDepositUrl() {
-  const testFlag = String(process.env.CROSSREF_TEST || '').toLowerCase();
+  const testFlag = String(process.env.CR_TEST || '').toLowerCase();
   return testFlag === 'true' || testFlag === '1' || testFlag === 'yes' ? TEST_DEPOSIT_URL : DEFAULT_DEPOSIT_URL;
 }
 
@@ -21,12 +21,12 @@ export async function handler(event) {
     return json(405, { error: 'Method not allowed' });
   }
 
-  const loginId = process.env.CROSSREF_USERNAME;
-  const loginPasswd = process.env.CROSSREF_PASSWORD;
+  const loginId = process.env.CR_USERNAME;
+  const loginPasswd = process.env.CR_PASSWORD;
 
   if (!loginId || !loginPasswd) {
     return json(500, {
-      error: 'Missing Crossref credentials. Set CROSSREF_USERNAME and CROSSREF_PASSWORD in the deployment environment.',
+      error: 'Crossref credentials are not configured.',
     });
   }
 
