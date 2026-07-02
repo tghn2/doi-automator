@@ -24,12 +24,6 @@ The app now includes:
 - an **Open Crossref validator** button that opens the Crossref metadata quality check page
 - a **Send XML to Crossref** button that submits the XML through a Netlify Function
 
-Set these environment variables in Netlify for deposits:
-
-- `CROSSREF_USERNAME`
-- `CROSSREF_PASSWORD`
-- `CROSSREF_TEST=true` to send deposits to Crossref's test endpoint instead of production
-
 ## Notes
 
 - Uses `read-excel-file` for workbook import.
