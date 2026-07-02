@@ -4,11 +4,13 @@ import { buildHubXml } from './lib/xml/hub';
 import { buildResourceXml } from './lib/xml/resource';
 import { buildTranslationXml } from './lib/xml/translation';
 import { buildAppendixXml } from './lib/xml/appendix';
-import { buildExportMeta, DEFAULT_NEXT_DOI_SUFFIX, type ExportMeta } from './lib/export';
+import { buildExportMeta, DEFAULT_NEXT_DOI_SUFFIX, formatDoi, type ExportMeta } from './lib/export';
 import { classifySheet, extractControlSettings, parseWorkbookFile, parseWorkbookRecord } from './lib/workbook';
 import {
   CROSSREF_SUBMISSION_CANCELLED_MESSAGE,
-  CROSSREF_SUBMISSION_WARNING_MESSAGE,
+  CROSSREF_SUBMISSION_CONFIRM_LABEL,
+  CROSSREF_SUBMISSION_WARNING_CANCEL_LABEL,
+  CROSSREF_SUBMISSION_WARNING_PARAGRAPHS,
   CROSSREF_SUBMISSION_WARNING_TITLE,
 } from './lib/crossrefMessages';
 
@@ -176,6 +178,8 @@ export default function App() {
   const [activeRowIndex, setActiveRowIndex] = useState<number>(0);
   const [workbookNotice, setWorkbookNotice] = useState<string>('');
   const [depositStatus, setDepositStatus] = useState<string>('');
+  const [isCrossrefConfirmOpen, setIsCrossrefConfirmOpen] = useState(false);
+  const [isSubmittingCrossref, setIsSubmittingCrossref] = useState(false);
 
   useEffect(() => {
     setExportMeta(buildExportMeta(mode, nextDoiSuffix));
@@ -198,6 +202,10 @@ export default function App() {
   const xml = useMemo(() => buildXml(mode, record, normalizedCreators, exportMeta), [mode, record, normalizedCreators, exportMeta]);
 
   const assignedDoiUrl = exportMeta.assignedDoiUrl;
+
+  const bumpNextDoiSuffix = () => {
+    setNextDoiSuffix((prev) => prev + 1);
+  };
   const currentSheet = workbook?.sheets.find((sheet) => sheet.name === activeSheetName) ?? null;
   const recordSheets = workbook?.sheets.filter((sheet) => classifySheet(sheet.name) === 'record') ?? [];
   const controlSheets = workbook?.sheets.filter((sheet) => classifySheet(sheet.name) === 'control' || classifySheet(sheet.name) === 'lists') ?? [];
@@ -305,19 +313,14 @@ export default function App() {
     a.download = exportFilename;
     a.click();
     URL.revokeObjectURL(url);
-    setNextDoiSuffix((prev) => prev + 1);
-    setDepositStatus(`Downloaded ${exportFilename}.`);
+    bumpNextDoiSuffix();
+    setDepositStatus(`Downloaded ${exportFilename}. Next DOI is ${formatDoi(exportMeta.nextDoiSuffix)}.`);
   }
 
   async function sendXmlToCrossref() {
     if (!validateDepositReadiness()) return;
 
-    const confirmed = window.confirm(`${CROSSREF_SUBMISSION_WARNING_TITLE}\n\n${CROSSREF_SUBMISSION_WARNING_MESSAGE}`);
-    if (!confirmed) {
-      setDepositStatus(CROSSREF_SUBMISSION_CANCELLED_MESSAGE);
-      return;
-    }
-
+    setIsSubmittingCrossref(true);
     setDepositStatus('Submitting XML to Crossref...');
 
     try {
@@ -340,12 +343,29 @@ export default function App() {
         throw new Error(payload?.error || payload?.message || payload?.response || `Crossref deposit failed (${response.status})`);
       }
 
-      setNextDoiSuffix((prev) => prev + 1);
-      setDepositStatus(payload?.message || 'XML submitted to Crossref. Check the Crossref queue for processing status.');
+      bumpNextDoiSuffix();
+      setDepositStatus(payload?.message || `XML submitted to Crossref. Next DOI is ${formatDoi(exportMeta.nextDoiSuffix)}.`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown Crossref deposit error.';
       setDepositStatus(message);
+    } finally {
+      setIsSubmittingCrossref(false);
     }
+  }
+
+  function openCrossrefConfirm() {
+    if (!validateDepositReadiness()) return;
+    setIsCrossrefConfirmOpen(true);
+  }
+
+  function cancelCrossrefConfirm() {
+    setIsCrossrefConfirmOpen(false);
+    setDepositStatus(CROSSREF_SUBMISSION_CANCELLED_MESSAGE);
+  }
+
+  function confirmCrossrefSubmission() {
+    setIsCrossrefConfirmOpen(false);
+    void sendXmlToCrossref();
   }
 
   function renderSheetPreview(sheet: WorkbookSheet) {
@@ -654,9 +674,9 @@ export default function App() {
             <button className="secondary" onClick={openCrossrefValidator}>
               Open Crossref validator
             </button>
-            <button className="secondary" onClick={sendXmlToCrossref}>
+            <button className="secondary" onClick={openCrossrefConfirm}>
               Send XML to Crossref
-            </button>            
+            </button>
           </div>
           <div className="muted" style={{ marginBottom: 12 }}>
             DOI allocation increments by 1 after download or successful deposit.
@@ -669,6 +689,43 @@ export default function App() {
           <textarea className="code" readOnly value={xml} />
         </div>
       </div>
+
+      {isCrossrefConfirmOpen && (
+        <div className="modal-backdrop" role="presentation" onClick={cancelCrossrefConfirm}>
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="crossref-submit-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div className="warning-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 9v4" />
+                  <path d="M12 17h.01" />
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h17.34a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+                </svg>
+              </div>
+              <div>
+                <h2 id="crossref-submit-title">{CROSSREF_SUBMISSION_WARNING_TITLE}</h2>
+                {CROSSREF_SUBMISSION_WARNING_PARAGRAPHS.map((paragraph) => (
+                  <p key={paragraph}>{paragraph}</p>
+                ))}
+              </div>
+            </div>
+
+            <div className="actions modal-actions">
+              <button className="secondary" onClick={cancelCrossrefConfirm} disabled={isSubmittingCrossref}>
+                {CROSSREF_SUBMISSION_WARNING_CANCEL_LABEL}
+              </button>
+              <button className="primary danger" onClick={confirmCrossrefSubmission} disabled={isSubmittingCrossref}>
+                {isSubmittingCrossref ? 'Submitting...' : CROSSREF_SUBMISSION_CONFIRM_LABEL}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

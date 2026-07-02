@@ -111,6 +111,8 @@ textarea { min-height: 120px; resize: vertical; }
 }
 .primary { background: #0f172a; color: white; }
 .secondary { background: #e2e8f0; color: #0f172a; }
+.primary.danger { background: #b91c1c; }
+.primary.danger:hover { background: #991b1b; }
 
 .code {
   width: 100%;
@@ -201,4 +203,63 @@ textarea { min-height: 120px; resize: vertical; }
   position: sticky;
   top: 0;
   z-index: 1;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.58);
+  z-index: 50;
+}
+
+.modal {
+  width: min(720px, 100%);
+  background: white;
+  border-radius: 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.25);
+  padding: 24px;
+}
+
+.modal-header {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.warning-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.modal h2 {
+  margin: 0 0 12px;
+  font-size: 24px;
+}
+
+.modal p {
+  margin: 0 0 12px;
+  color: #334155;
+  line-height: 1.55;
+}
+
+.modal p:last-child {
+  margin-bottom: 0;
+}
+
+.modal-actions {
+  justify-content: flex-end;
+  margin-bottom: 0;
+  margin-top: 20px;
 }
