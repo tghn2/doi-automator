@@ -21,7 +21,7 @@ export async function handler(event) {
     return json(405, { error: 'Method not allowed' });
   }
 
-  const loginId = process.env.CR_USERNAME;
+  const loginId = process.env.CR_LOGIN;
   const loginPasswd = process.env.CR_PASSWORD;
 
   if (!loginId || !loginPasswd) {
