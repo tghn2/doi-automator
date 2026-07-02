@@ -19,7 +19,7 @@ export function buildEnvelope(params: {
     `    <doi_batch_id>${escapeXml(params.batchId)}</doi_batch_id>`,
     `    <timestamp>${escapeXml(params.timestamp)}</timestamp>`,
     '    <depositor>',
-    `      <depositor_name>tghn:tghn</depositor_name>`,
+    `<depositor_name>tghn:tghn</depositor_name>`,
     `      <email_address>samuel.driver@ndm.ox.ac.uk</email_address>`,
     '    </depositor>',
     `    <registrant>The Global Health Network</registrant>`,
