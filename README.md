@@ -2,8 +2,6 @@
 
 Client-side XML generator for Crossref deposits.
 
-[https://tghndoiautomator.netlify.app/](https://tghndoiautomator.netlify.app/)
-
 ## Run locally
 
 ```bash
