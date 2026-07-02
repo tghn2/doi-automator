@@ -6,11 +6,17 @@ import { buildTranslationXml } from './lib/xml/translation';
 import { buildAppendixXml } from './lib/xml/appendix';
 import { buildExportMeta, DEFAULT_NEXT_DOI_SUFFIX, type ExportMeta } from './lib/export';
 import { classifySheet, extractControlSettings, parseWorkbookFile, parseWorkbookRecord } from './lib/workbook';
+import {
+  CROSSREF_SUBMISSION_CANCELLED_MESSAGE,
+  CROSSREF_SUBMISSION_WARNING_MESSAGE,
+  CROSSREF_SUBMISSION_WARNING_TITLE,
+} from './lib/crossrefMessages';
 
 const STORAGE_KEY = 'doi-automator-next-doi-suffix';
 const FALLBACK_DEPOSITOR_NAME = 'tghn:tghn';
 const FALLBACK_EMAIL = 'samuel.driver@ndm.ox.ac.uk';
 const FALLBACK_REGISTRANT = 'The Global Health Network';
+const CROSSREF_VALIDATOR_URL = 'https://www.crossref.org/02publishers/parser.html';
 
 function getStoredNextDoiSuffix(): number {
   if (typeof window === 'undefined') return DEFAULT_NEXT_DOI_SUFFIX;
@@ -169,6 +175,7 @@ export default function App() {
   const [activeSheetName, setActiveSheetName] = useState<string>('');
   const [activeRowIndex, setActiveRowIndex] = useState<number>(0);
   const [workbookNotice, setWorkbookNotice] = useState<string>('');
+  const [depositStatus, setDepositStatus] = useState<string>('');
 
   useEffect(() => {
     setExportMeta(buildExportMeta(mode, nextDoiSuffix));
@@ -270,32 +277,76 @@ export default function App() {
     }
   }
 
-  const exportXml = async (action: 'copy' | 'download') => {
+  const exportFilename = `${mode}-${exportMeta.assignedDoiSuffix}.xml`;
+
+  function validateDepositReadiness() {
     if (mode === 'translation' && (!record.referenceDoi.trim() || !record.relatedDoi.trim())) {
       alert('Please enter both the hub DOI and translated resource DOI before exporting this record.');
-      return;
+      return false;
     }
     if (mode === 'appendix' && (!record.referenceDoi.trim() || !record.relatedDoi.trim())) {
       alert('Please enter both the hub DOI and related resource DOI before exporting this record.');
+      return false;
+    }
+    return true;
+  }
+
+  function openCrossrefValidator() {
+    window.open(CROSSREF_VALIDATOR_URL, '_blank', 'noopener,noreferrer');
+  }
+
+  function downloadXml() {
+    if (!validateDepositReadiness()) return;
+
+    const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = exportFilename;
+    a.click();
+    URL.revokeObjectURL(url);
+    setNextDoiSuffix((prev) => prev + 1);
+    setDepositStatus(`Downloaded ${exportFilename}.`);
+  }
+
+  async function sendXmlToCrossref() {
+    if (!validateDepositReadiness()) return;
+
+    const confirmed = window.confirm(`${CROSSREF_SUBMISSION_WARNING_TITLE}\n\n${CROSSREF_SUBMISSION_WARNING_MESSAGE}`);
+    if (!confirmed) {
+      setDepositStatus(CROSSREF_SUBMISSION_CANCELLED_MESSAGE);
       return;
     }
 
-    const output = xml;
+    setDepositStatus('Submitting XML to Crossref...');
 
-    if (action === 'copy') {
-      await navigator.clipboard.writeText(output);
-    } else {
-      const blob = new Blob([output], { type: 'application/xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${mode}-${exportMeta.assignedDoiSuffix}.xml`;
-      a.click();
-      URL.revokeObjectURL(url);
+    try {
+      const response = await fetch('/.netlify/functions/crossref-deposit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          xml,
+          filename: exportFilename,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { ok?: boolean; message?: string; response?: string; error?: string }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || payload?.message || payload?.response || `Crossref deposit failed (${response.status})`);
+      }
+
+      setNextDoiSuffix((prev) => prev + 1);
+      setDepositStatus(payload?.message || 'XML submitted to Crossref. Check the Crossref queue for processing status.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown Crossref deposit error.';
+      setDepositStatus(message);
     }
-
-    setNextDoiSuffix((prev) => prev + 1);
-  };
+  }
 
   function renderSheetPreview(sheet: WorkbookSheet) {
     if (sheet.rows.length === 0) {
@@ -339,9 +390,8 @@ export default function App() {
       <div className="header">
         <div>
           <h1>DOI Automator</h1>
-          <small>Client-side XML generator for Fleming Fund-style Crossref deposits.</small>
+          <small>Client-side XML generator for Crossref deposits.</small>
         </div>
-        <div className="muted">Netlify-ready Vite app</div>
       </div>
 
       <div className="import-bar card" style={{ marginBottom: 18 }}>
@@ -598,16 +648,24 @@ export default function App() {
 
         <div className="card">
           <div className="actions">
-            <button className="primary" onClick={() => exportXml('copy')}>
-              Copy XML and reserve DOI
+            <button className="primary" onClick={downloadXml}>
+              Download XML
             </button>
-            <button className="secondary" onClick={() => exportXml('download')}>
-              Download XML and reserve DOI
+            <button className="secondary" onClick={openCrossrefValidator}>
+              Open Crossref validator
             </button>
+            <button className="secondary" onClick={sendXmlToCrossref}>
+              Send XML to Crossref
+            </button>            
           </div>
           <div className="muted" style={{ marginBottom: 12 }}>
-            DOI allocation increments by 1 for every export, including hubs.
+            DOI allocation increments by 1 after download or successful deposit.
           </div>
+          {depositStatus && (
+            <div className="muted" style={{ marginBottom: 12 }}>
+              {depositStatus}
+            </div>
+          )}
           <textarea className="code" readOnly value={xml} />
         </div>
       </div>
